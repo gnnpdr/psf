@@ -29,12 +29,13 @@ def check_color(img_array):
         elif img_array.shape[2] == 4:
             return 'rgba'
 
-def tiff2float(img):
+def img2float(img):
     img_gray = img.convert('L')
     img_array = numpy.array(img_gray)
     img_float = (img_array / 255).astype(numpy.float32)
     return img_float
 
+#ну, пэд + шифт
 def pad_psf(psf):
     psf_shifted = fftshift(psf)
     
@@ -86,12 +87,15 @@ def make_trio(img_name, img_np, noisy_np, psf_2d, psf_idx, noise_level):
     axes[2].axis('off')
 
     plt.tight_layout()
-    plt.savefig(f'results/{img_name}_psf_{psf_idx}_noise_{noise_level}.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'results/trios/{img_name}_psf_{psf_idx}_noise_{noise_level}.png', dpi=150, bbox_inches='tight')
     plt.close()
 
 #---------------------------------------------------------------
 
 os.makedirs('results', exist_ok = True)
+os.makedirs('results/trios', exist_ok = True)
+os.makedirs('results/blurred', exist_ok = True)
+os.makedirs('results/psf', exist_ok = True)
 
 image_paths = [
     'image/1.png',
@@ -121,8 +125,9 @@ dataset = []
 
 for img_path in image_paths:
     orig_img = Image.open(img_path) 
+    img_name = get_file_name(img_path)
     orig_img_array = numpy.array(orig_img)
-    img = tiff2float(orig_img)
+    img = img2float(orig_img)
 
     img_tensor = torch.from_numpy(img).float().unsqueeze(0).unsqueeze(0)
     h_img, w_img = img.shape
@@ -130,6 +135,8 @@ for img_path in image_paths:
     for psf_idx in range(5):
         psf = psf_dataset[psf_idx]
         psf_2d = psf.squeeze(0)
+        psf2save = psf_2d.cpu().numpy()
+        np.save(f'results/psf/{img_name}_psf_{psf_idx}.npy', psf2save) 
         psf_padded = pad_psf(psf_2d)
 
         blurred_tensor = blur(img, psf_padded)
@@ -137,5 +144,7 @@ for img_path in image_paths:
 
         for noise_level in noise_params:
             noisy_np = random_noise(blurred_np, mode = 'gaussian', mean = 0, var = noise_level**2, clip = True)
-            img_name = get_file_name(img_path)
+            noisy_img = (noisy_np * 255).astype(np.uint8)
+            
+            Image.fromarray(noisy_img).save(f'results/blurred/{img_name}_psf_{psf_idx}_noise_{noise_level}.png')
             make_trio(img_name, orig_img_array, noisy_np, psf_2d, psf_idx, noise_level)
