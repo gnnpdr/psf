@@ -3,3 +3,5 @@ test.py
 /venv
 dataset.pkl
 /results
+rich_lusy.py
+clear.py

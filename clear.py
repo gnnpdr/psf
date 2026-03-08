@@ -51,7 +51,7 @@ if match:
     psf_idx = int(match.group(2))
     noise = float(match.group(3))
 
-noise = noise / 10
+noise = 0.1
 
 img_float = img2float(img)
 
@@ -59,35 +59,35 @@ img_float = img2float(img)
 psf_np = np.load(f'results/psf/{original_name}_psf_{psf_idx}.npy')
 
 
-#result = wiener(img_float, psf_np, noise)
-#result_img = (result * 255).clip(0, 255).astype(np.uint8)
-#Image.fromarray(result_img).save(f'results/wiener/{name_without_ext}_restored.png')
+result = wiener(img_float, psf_np, noise)
+result_img = (result * 255).clip(0, 255).astype(np.uint8)
+Image.fromarray(result_img).save(f'results/wiener/{original_name}_clear_noise_{noise}_restored.png')
 
 #num_iter = 4
 #result = richardson_lucy(img_float, psf_np, num_iter)
 #result_img = (result * 255).clip(0, 255).astype(np.uint8)
 #Image.fromarray(result_img).save(f'results/rich_lucy/{name_without_ext}_{num_iter}_restored.png')
 
-psf = pad_psf(psf_np, img_float)
-img_tensor = torch.from_numpy(img_float).float()
-
-if len(img_tensor.shape) == 2:
-    img_tensor = img_tensor.unsqueeze(0).unsqueeze(0) 
-if len(psf.shape) == 2:
-    psf_tensor = psf.unsqueeze(0).unsqueeze(0)
-
-params = MontaltoParameters(
-    lr=1e-2,           
-    theta=1e-6,  
-    tau=2e-5,   
-    Lambda=65.0,       
-    c_high=1.0,        
-    c_low=0.0,        
-    gap=0.01,
-)
-
-result_tensor = montalto(img_tensor, psf_tensor, params)
-result_tensor = torch.fft.ifftshift(result_tensor, dim = (-2, -1)) 
-result = result_tensor[0, 0].cpu().detach().numpy()
-result_img = (result * 255).clip(0, 255).astype(np.uint8)
-Image.fromarray(result_img).save(f'results/tv/{name_without_ext}_restored.png')
+#psf = pad_psf(psf_np, img_float)
+#img_tensor = torch.from_numpy(img_float).float()
+#
+#if len(img_tensor.shape) == 2:
+#    img_tensor = img_tensor.unsqueeze(0).unsqueeze(0) 
+#if len(psf.shape) == 2:
+#    psf_tensor = psf.unsqueeze(0).unsqueeze(0)
+#
+#params = MontaltoParameters(
+#    lr=1e-2,           
+#    theta=1e-6,  
+#    tau=2e-5,   
+#    Lambda=65.0,       
+#    c_high=1.0,        
+#    c_low=0.0,        
+#    gap=0.01,
+#)
+#
+#result_tensor = montalto(img_tensor, psf_tensor, params)
+#result_tensor = torch.fft.ifftshift(result_tensor, dim = (-2, -1)) 
+#result = result_tensor[0, 0].cpu().detach().numpy()
+#result_img = (result * 255).clip(0, 255).astype(np.uint8)
+#Image.fromarray(result_img).save(f'results/tv/{name_without_ext}_restored.png')
