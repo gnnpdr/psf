@@ -20,6 +20,13 @@ def pad_psf(psf, img):
     h_img, w_img = img.shape
     h_psf, w_psf = psf.shape
     
+    if isinstance(psf, np.ndarray):
+        psf_tensor = torch.from_numpy(psf).float()
+    else:
+        psf_tensor = psf.clone()
+    
+    psf_shifted = fftshift(psf_tensor)
+    
     pad_h = h_img - h_psf
     pad_w = w_img - w_psf
     
@@ -27,11 +34,8 @@ def pad_psf(psf, img):
     pad_bottom = pad_h - pad_top
     pad_left = pad_w // 2
     pad_right = pad_w - pad_left
-
-    if isinstance(psf, np.ndarray):
-        psf = torch.from_numpy(psf).float()
     
-    psf_padded = F.pad(psf, (pad_left, pad_right, pad_top, pad_bottom), 'constant', 0)
+    psf_padded = F.pad(psf_shifted, (pad_left, pad_right, pad_top, pad_bottom), 'constant', 0)
     
     psf_padded = psf_padded / psf_padded.sum()
     return psf_padded
@@ -115,58 +119,59 @@ def make_wiener(img_tensor, psf_tensor, noise):
 
     return res_tensor
 
+
+
 #------------------------------------------------------------------------------------------------------
 
-
-def check_noise(metric_func, blurred_tensor, psf_tensor, noise, orig_tensor):
+def check_param(metric_func, blurred_tensor, psf_tensor, noise, orig_tensor):
     
     steps = [10, 5, 2]
-    min_noise = 1e-7
-    max_noise = 20.0
+    min_param = 1e-7
+    max_param = 20.0
 
-    cur_noise = noise
+    cur_param = noise
+    res_tensor = make_wiener(blurred_tensor, psf_tensor, cur_param)
+    best_metric = metric_func(orig_tensor, res_tensor)
+    best_param = cur_param
 
     for step in steps:
-        start_step_noise = cur_noise
-        res_tensor = make_wiener(blurred_tensor, psf_tensor, start_step_noise)
-        start_metric = metric_func(orig_tensor, res_tensor)
-        cur_metric = start_metric
-        new_metric = float('inf')
-        while cur_metric < new_metric:
-            if new_metric != float('inf'):
-                cur_metric = new_metric
+        test_param = best_param
+        improved = True
+        
+        while improved:
+            improved = False
+            new_param = test_param // step
+            if new_param < min_param:
+                break
                 
-            new_noise = cur_noise / step
-
-            if new_noise < min_noise:
-                break
-
-            res_tensor = make_wiener(blurred_tensor, psf_tensor, new_noise)
+            res_tensor = make_wiener(blurred_tensor, psf_tensor, new_param)
             new_metric = metric_func(orig_tensor, res_tensor)
-        best_min_noise = cur_noise
-        res_metric = cur_metric
-
-        cur_noise = start_step_noise
-        new_metric = float('inf')
-
-        while cur_metric < new_metric:
-            if new_metric != float('inf'):
-                cur_metric = new_metric
-
-            new_noise = cur_noise * step
-            if new_noise > max_noise:
-                break
             
-            res_tensor = make_wiener(blurred_tensor, psf_tensor, new_noise)
+            if new_metric > best_metric:
+                best_metric = new_metric
+                best_param = new_param
+                test_param = new_param
+                improved = True
+        
+        test_param = best_param
+        improved = True
+        
+        while improved:
+            improved = False
+            new_param = test_param * step
+            if new_param > max_param:
+                break
+                
+            res_tensor = make_wiener(blurred_tensor, psf_tensor, new_param)
             new_metric = metric_func(orig_tensor, res_tensor)
-        best_max_noise = cur_noise
+            
+            if new_metric > best_metric:
+                best_metric = new_metric
+                best_param = new_param
+                test_param = new_param
+                improved = True
 
-        if cur_metric > res_metric:
-            res_metric = cur_metric
-        cur_noise = max(best_max_noise, best_min_noise)
-
-    return cur_noise, res_metric
-
+    return best_param, best_metric
 
 
 def calc_ssim(orig_tensor, res_tensor):
@@ -187,9 +192,8 @@ def calc_psnr(orig_tensor, res_tensor):
     orig_np = np.clip(orig_np, 0, 1)
     res_np = np.clip(res_np, 0, 1)
     
-    metric_val = psnr(orig_np, res_np, data_range=1.0)
-    return metric_val
-
+    psnr_val = psnr(orig_np, res_np, data_range=1.0)
+    return psnr_val
 
 #----------------------------------------------------------------------------------------------------------
 
@@ -215,9 +219,6 @@ for filename in all_files:
         blurred_tensor = torch.from_numpy(blurred_float).float()
 
         psf_np = np.load(f'results/psf/{orig_name}_psf_{psf_ind}.npy')
-        psf = pad_psf(psf_np, blurred_float)
-
-        #отдельно увеличиваем размерность, чтобы можно было использовать функцией этой библиотеки
         blurred_tensor = torch.from_numpy(blurred_float).float()
         if len(blurred_tensor.shape) == 2:
             blurred_tensor = blurred_tensor.unsqueeze(0).unsqueeze(0)
@@ -227,11 +228,15 @@ for filename in all_files:
 
         init_psnr_val = calc_psnr(orig_tensor, blurred_tensor)
         init_ssim_val = calc_ssim(orig_tensor, blurred_tensor)
-        best_psnr_noise, psnr_val = check_noise(calc_psnr, blurred_tensor, psf_tensor, noise, orig_tensor)
-        best_ssim_noise, ssim_val = check_noise(calc_ssim, blurred_tensor, psf_tensor, noise, orig_tensor)
-        print("file", file_name, "\ninitial psnr val", init_psnr_val, "psnr val after restoration", psnr_val, "noise", best_psnr_noise, "\ninitial ssim val", init_ssim_val, "psnr val after restoration", ssim_val, "noise", best_ssim_noise, "\n---------------\n")
-        res_np = make_save_wiener(blurred_tensor, psf_tensor, best_psnr_noise, orig_name)
-        res_np = make_save_wiener(blurred_tensor, psf_tensor, best_ssim_noise, orig_name)
+        best_psnr_noise, psnr_val = check_param(calc_psnr, blurred_tensor, psf_tensor, noise, orig_tensor)
+        best_ssim_noise, ssim_val = check_param(calc_ssim, blurred_tensor, psf_tensor, noise, orig_tensor)
+        with open('results/wiener_skimage_res.txt', 'a') as f:
+            f.write(f"file {file_name}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, noise {best_psnr_noise}\ninitial ssim val {init_ssim_val}, psnr val after restoration {ssim_val}, noise, {best_ssim_noise}\n---------------\n")
+        
+        psnr_name = f'{file_name}_best_psnr'
+        ssim_name = f'{file_name}_best_ssim'
+        res_np = make_save_wiener(blurred_tensor, psf_tensor, best_psnr_noise, psnr_name)
+        res_np = make_save_wiener(blurred_tensor, psf_tensor, best_ssim_noise, ssim_name)
         orig_np = tensor2np(orig_tensor)
         blurred_np = tensor2np(blurred_tensor)
         make_trio(file_name, orig_np, blurred_np, res_np)
