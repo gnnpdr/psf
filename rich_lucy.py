@@ -13,12 +13,11 @@ def img2float(img):
     img_gray = img.convert('L')
     img_array = np.array(img_gray)
     img_float = (img_array / 255).astype(np.float32)
+
     return img_float
 
 def get_img_params(file_name):
-    name_without_ext = os.path.splitext(file_name)[0]
-
-    match = re.search(r'(.+?)_psf_(\d+)_noise_([\d.]+)', name_without_ext)
+    match = re.search(r'(.+?)_psf_(\d+)_noise_([\d.]+)', file_name)
     if match:
         original_name = match.group(1)
         psf_ind = int(match.group(2))
@@ -43,7 +42,7 @@ def make_trio(file_name, orig_np, blurred_np, res_np):
     axes[2].axis('off')
 
     plt.tight_layout()
-    plt.savefig(f'results/res_trios_rich_lucy/{file_name}.png', dpi=150, bbox_inches='tight')
+    plt.savefig(f'results/restored_trios_rich_lucy/{file_name}.png', dpi=150, bbox_inches='tight')
     plt.close()
 
 #--------------------------------------------------------------------------------------------------
@@ -52,7 +51,7 @@ def rich_lucy_save(img_float, psf_np, it, orig_name):
     psf_centered = center_psf(psf_np)
     res_np = richardson_lucy(img_float, psf_centered, it)
     result_img = (res_np * 255).clip(0, 255).astype(np.uint8)
-    Image.fromarray(result_img).save(f'results/rich_lusy_restored/{orig_name}_it_{it}_restored.png')
+    Image.fromarray(result_img).save(f'results/restored_rich_lusy/{orig_name}_it_{it}_restored.png')
     return res_np
 
 
@@ -86,6 +85,7 @@ def check_iterations(metric_func, blurred_float, psf_np, orig_float):
                 break
                 
             res_np = rich_lucy(blurred_float, psf_np, new_it)
+
             new_metric = metric_func(orig_float, res_np)
             
             if new_metric > best_metric:
@@ -104,6 +104,7 @@ def check_iterations(metric_func, blurred_float, psf_np, orig_float):
                 break
                 
             res_np = rich_lucy(blurred_float, psf_np, new_it)
+
             new_metric = metric_func(orig_float, res_np)
             
             if new_metric > best_metric:
@@ -143,8 +144,8 @@ def calc_psnr(orig_float, res_np):
 
 #----------------------------------------------------------------------------------------------------------
 
-os.makedirs('results/rich_lusy_restored', exist_ok = True)
-os.makedirs('results/res_trios_rich_lucy', exist_ok = True)
+os.makedirs('results/restored_rich_lusy', exist_ok = True)
+os.makedirs('results/restored_trios_rich_lucy', exist_ok = True)
 
 folder_path = 'results/blurred'
 
@@ -155,6 +156,7 @@ for filename in all_files:
     if os.path.isfile(file_path):
         
         file_name = os.path.basename(file_path)
+        file_name = os.path.splitext(file_name)[0]
         orig_name, psf_ind, noise = get_img_params(file_name)
 
         orig = Image.open(f'image/{orig_name}.tiff')
@@ -164,17 +166,30 @@ for filename in all_files:
         blurred_float = img2float(blurred)
 
         psf_np = np.load(f'results/psf/{orig_name}_psf_{psf_ind}.npy')
+        if abs(psf_np.sum() - 1.0) > 1e-6:
+            psf_np = psf_np / psf_np.sum()
 
         init_psnr_val = calc_psnr(orig_float, blurred_float)
         init_ssim_val = calc_ssim(orig_float, blurred_float)
 
-        best_psnr_iterations, psnr_val = check_iterations(calc_psnr, blurred_float, psf_np, orig_float)
-        best_ssim_iterations, ssim_val = check_iterations(calc_ssim, blurred_float, psf_np, orig_float)
-        with open('results/rich_lucy_res.txt', 'a') as f:
-           f.write(f"file {file_name}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, iterations {best_psnr_iterations}\ninitial ssim val {init_ssim_val}, psnr val after restoration {ssim_val}, iterations, {best_ssim_iterations}\n---------------\n")
+        #best_psnr_iterations, psnr_val = check_iterations(calc_psnr, blurred_float, psf_np, orig_float)
+        #best_ssim_iterations, ssim_val = check_iterations(calc_ssim, blurred_float, psf_np, orig_float)
+        #file_name_psnr = f'{file_name}_best_psnr'
+        #file_name_ssim = f'{file_name}_best_ssim'
+
+        #with open('results/rich_lucy_res.txt', 'a') as f:
+        #    f.write(f"file {file_name_psnr}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, iterations {best_psnr_iterations}\nfile {file_name_ssim}\ninitial ssim val {init_ssim_val}, ssim val after restoration {ssim_val}, iterations {best_ssim_iterations}\n---------------\n")
         
-        psnr_name = f'{file_name}_best_psnr'
-        ssim_name = f'{file_name}_best_ssim'
-        res_np = rich_lucy_save(blurred_float, psf_np, best_psnr_iterations, psnr_name)
-        res_np = rich_lucy_save(blurred_float, psf_np, best_ssim_iterations, ssim_name)
+        #res_np_psnr = rich_lucy_save(blurred_float, psf_np, best_psnr_iterations, file_name_psnr)
+        #res_np_ssim = rich_lucy_save(blurred_float, psf_np, best_ssim_iterations, file_name_ssim)
+        #make_trio(file_name_psnr, orig_float, blurred_float, res_np_psnr)
+        #make_trio(file_name_ssim, orig_float, blurred_float, res_np_ssim)
+
+        
+
+        res_np = rich_lucy_save(blurred_float, psf_np, 5, file_name)
+        res_psnr_val = calc_psnr(orig_float, res_np)
+        res_ssim_val = calc_ssim(orig_float, res_np)
+        with open('results/rich_lucy_res_20.txt', 'a') as f:
+            f.write(f"file {file_name}\ninitial psnr val {init_psnr_val}, psnr val after restoration {res_psnr_val}\ninitial ssim val {init_ssim_val}, ssim val after restoration {res_ssim_val}\n---------------\n")
         make_trio(file_name, orig_float, blurred_float, res_np)
