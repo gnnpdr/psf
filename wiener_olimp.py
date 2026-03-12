@@ -81,19 +81,20 @@ def normalize(img):
     return img
 
 
-def make_trio(file_name, orig_np, blurred_np, res_np):
+def make_trio(file_name, orig_np, blurred_np, res_np, psf_ind, init_noise, optimal_noise):
     fig, axes = plt.subplots(1, 3, figsize=(15, 10))
+    fig.suptitle('Wiener (olimp)', fontsize=14, y=0.78)
 
     axes[0].imshow(orig_np, cmap='gray')
     axes[0].set_title('original', fontsize=12)
     axes[0].axis('off')
 
     axes[1].imshow(blurred_np, cmap='gray')
-    axes[1].set_title('blurred', fontsize=12)
+    axes[1].set_title(f'blurred, psf {psf_ind}, noise {init_noise}', fontsize=12)
     axes[1].axis('off')
 
     axes[2].imshow(res_np, cmap='gray')
-    axes[2].set_title('result', fontsize=12)
+    axes[2].set_title(f'result, optimal_noise {optimal_noise}', fontsize=12)
     axes[2].axis('off')
 
     plt.tight_layout()
@@ -232,5 +233,5 @@ for filename in all_files:
         res_np_ssim = wiener(blurred_tensor, psf_tensor, best_ssim_noise, file_name_ssim)
         orig_np = tensor2np(orig_tensor)
         blurred_np = tensor2np(blurred_tensor)
-        make_trio(file_name_psnr, orig_np, blurred_np, res_np_psnr)
-        make_trio(file_name_ssim, orig_np, blurred_np, res_np_ssim)
+        make_trio(file_name_psnr, orig_np, blurred_np, res_np_psnr, psf_ind, noise, best_psnr_noise)
+        make_trio(file_name_ssim, orig_np, blurred_np, res_np_ssim, psf_ind, noise, best_ssim_noise)

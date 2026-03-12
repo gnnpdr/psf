@@ -82,7 +82,7 @@ def plot_rl_analysis(results, res_name):
             x = [noise_levels.index(noise)] * len(impr)
             ax.scatter(x, impr, alpha=0.5, color='blue', zorder=5)
     
-    ax.axhline(y=0, color='r', linestyle='--', alpha=0.5, label='Нет улучшения')
+    ax.axhline(y=0, color='r', linestyle='--', alpha=0.5, label='no improvement')
     ax.set_xlabel('noise')
     ax.set_ylabel('PSNR improvement (dB)')
     ax.set_title('dependence of PSNR on the noise level')

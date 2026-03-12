@@ -125,7 +125,7 @@ def plot_results(results_psnr, results_ssim):
             ax.plot([min_noise, max_noise], [min_noise, max_noise], 
                     'r--', label='opt = true', alpha=0.5)
             
-            ax.set_xlabel('init boise')
+            ax.set_xlabel('init noise')
             ax.set_ylabel('optimal noise (PSNR)')
             ax.set_title('optimal noise and init noise correlation (PSNR)')
             ax.set_xscale('log')
@@ -147,7 +147,7 @@ def plot_results(results_psnr, results_ssim):
             ax.plot([min_noise, max_noise], [min_noise, max_noise], 
                     'r--', label='opt = true', alpha=0.5)
             
-            ax.set_xlabel('init boise')
+            ax.set_xlabel('init noise')
             ax.set_ylabel('optimal noise (SSIM)')
             ax.set_title('optimal noise and init noise correlation (SSIM)')
             ax.set_xscale('log')

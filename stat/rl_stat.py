@@ -140,10 +140,12 @@ def plot_richardson_results(results_psnr, results_ssim):
                 positions.append(i)
             
             bp = ax.boxplot(data_by_noise, positions=positions, widths=0.5, patch_artist=True)
+            for patch in bp['boxes']:
+                patch.set_alpha(0.5)
+                patch.set_facecolor('lightblue')
             
             for i, noise in enumerate(unique_noises):
                 iters = [r['iterations'] for r in results_psnr if r['true_noise'] == noise]
-                #x_vals = [i + 0.1 * (np.random.random() - 0.5) for _ in iters]  # небольшой jitter
                 x_vals = [i] * len(iters)
                 ax.scatter(x_vals, iters, alpha=0.5, color='blue')
             
@@ -171,11 +173,12 @@ def plot_richardson_results(results_psnr, results_ssim):
                 positions.append(i)
             
             bp = ax.boxplot(data_by_noise, positions=positions, widths=0.5, patch_artist=True)
-            bp['boxes'][0].set_facecolor('lightgreen')
+            for patch in bp['boxes']:
+                patch.set_alpha(0.5)
+                patch.set_facecolor('lightblue')
             
             for i, noise in enumerate(unique_noises):
                 iters = [r['iterations'] for r in results_ssim if r['true_noise'] == noise]
-                #x_vals = [i + 0.1 * (np.random.random() - 0.5) for _ in iters]
                 x_vals = [i] * len(iters)
                 ax.scatter(x_vals, iters, alpha=0.5, color='green')
             

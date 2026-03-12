@@ -125,7 +125,7 @@ def plot_results(results_psnr, results_ssim):
             ax.plot([min_noise, max_noise], [min_noise, max_noise], 
                     'r--', label='opt = true', alpha=0.5)
             
-            ax.set_xlabel('init boise')
+            ax.set_xlabel('init noise')
             ax.set_ylabel('optimal noise (PSNR)')
             ax.set_title('optimal noise and init noise correlation (PSNR)')
             ax.set_xscale('log')
@@ -147,7 +147,7 @@ def plot_results(results_psnr, results_ssim):
             ax.plot([min_noise, max_noise], [min_noise, max_noise], 
                     'r--', label='opt = true', alpha=0.5)
             
-            ax.set_xlabel('init boise')
+            ax.set_xlabel('init noise')
             ax.set_ylabel('optimal noise (SSIM)')
             ax.set_title('optimal noise and init noise correlation (SSIM)')
             ax.set_xscale('log')
@@ -177,7 +177,7 @@ def plot_results(results_psnr, results_ssim):
                 stds.append(np.std(impr))
             
             x_pos = np.arange(len(unique_psf))
-            ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.7)
+            ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.5)
             ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
             ax.set_xlabel('PSF index')
             ax.set_ylabel('PSNR improvement (dB)')
@@ -213,7 +213,7 @@ def plot_results(results_psnr, results_ssim):
                 stds.append(np.std(impr))
             
             x_pos = np.arange(len(unique_psf))
-            ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.7, color='green')
+            ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.5, color='green')
             ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
             ax.set_xlabel('PSF index')
             ax.set_ylabel('SSIM improvement (dB)')

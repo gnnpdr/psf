@@ -126,21 +126,21 @@ os.makedirs('results/psf', exist_ok = True)
 
 image_paths = [
 #    'image/1.png',
-    'image/4.1.08.tiff', 
-    'image/4.2.05.tiff',
-    'image/7.1.01.tiff',
+    #'image/4.1.08.tiff', 
+    #'image/4.2.05.tiff',
+    #'image/7.1.01.tiff',
     'image/7.1.04.tiff',
-    'image/7.2.01.tiff'
+    #'image/7.2.01.tiff'
 ]
 
 psf_dataset = PsfGaussDataset(
-    width=21,
-    height=21,
+    width=15,
+    height=15,
     center_x = ({'name': 'constant', 'value': 0}),
     center_y = ({'name': 'constant', 'value': 0}),
     theta = ({'name': 'uniform', 'a': 0, 'b': 180}),
-    sigma_x = ({'name': 'uniform', 'a': 5.0, 'b': 10.0}),
-    sigma_y = ({'name': 'uniform', 'a': 5.0, 'b': 10.0}),
+    sigma_x = ({'name': 'uniform', 'a': 1.0, 'b': 5.0}),
+    sigma_y = ({'name': 'uniform', 'a': 1.0, 'b': 5.0}),
     seed=42,
     size=5
 )

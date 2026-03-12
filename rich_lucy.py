@@ -26,19 +26,20 @@ def get_img_params(file_name):
     return original_name, psf_ind, noise
 
 
-def make_trio(file_name, orig_np, blurred_np, res_np):
+def make_trio(file_name, orig_np, blurred_np, res_np, psf_ind, noise, it):
     fig, axes = plt.subplots(1, 3, figsize=(15, 10))
+    fig.suptitle('Richardson-Lucy', fontsize=14, y=0.78)
 
     axes[0].imshow(orig_np, cmap='gray')
     axes[0].set_title('original', fontsize=12)
     axes[0].axis('off')
 
     axes[1].imshow(blurred_np, cmap='gray')
-    axes[1].set_title('blurred', fontsize=12)
+    axes[1].set_title(f'blurred, psf {psf_ind}, noise {noise}', fontsize=12)
     axes[1].axis('off')
 
     axes[2].imshow(res_np, cmap='gray')
-    axes[2].set_title('result', fontsize=12)
+    axes[2].set_title(f'result, it {it}', fontsize=12)
     axes[2].axis('off')
 
     plt.tight_layout()
@@ -172,18 +173,18 @@ for filename in all_files:
         init_psnr_val = calc_psnr(orig_float, blurred_float)
         init_ssim_val = calc_ssim(orig_float, blurred_float)
 
-        #best_psnr_iterations, psnr_val = check_iterations(calc_psnr, blurred_float, psf_np, orig_float)
-        #best_ssim_iterations, ssim_val = check_iterations(calc_ssim, blurred_float, psf_np, orig_float)
-        #file_name_psnr = f'{file_name}_best_psnr'
-        #file_name_ssim = f'{file_name}_best_ssim'
+        best_psnr_iterations, psnr_val = check_iterations(calc_psnr, blurred_float, psf_np, orig_float)
+        best_ssim_iterations, ssim_val = check_iterations(calc_ssim, blurred_float, psf_np, orig_float)
+        file_name_psnr = f'{file_name}_best_psnr'
+        file_name_ssim = f'{file_name}_best_ssim'
 
-        #with open('results/rich_lucy_res.txt', 'a') as f:
-        #    f.write(f"file {file_name_psnr}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, iterations {best_psnr_iterations}\nfile {file_name_ssim}\ninitial ssim val {init_ssim_val}, ssim val after restoration {ssim_val}, iterations {best_ssim_iterations}\n---------------\n")
+        with open('results/rich_lucy_res.txt', 'a') as f:
+            f.write(f"file {file_name_psnr}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, iterations {best_psnr_iterations}\nfile {file_name_ssim}\ninitial ssim val {init_ssim_val}, ssim val after restoration {ssim_val}, iterations {best_ssim_iterations}\n---------------\n")
         
-        #res_np_psnr = rich_lucy_save(blurred_float, psf_np, best_psnr_iterations, file_name_psnr)
-        #res_np_ssim = rich_lucy_save(blurred_float, psf_np, best_ssim_iterations, file_name_ssim)
-        #make_trio(file_name_psnr, orig_float, blurred_float, res_np_psnr)
-        #make_trio(file_name_ssim, orig_float, blurred_float, res_np_ssim)
+        res_np_psnr = rich_lucy_save(blurred_float, psf_np, best_psnr_iterations, file_name_psnr)
+        res_np_ssim = rich_lucy_save(blurred_float, psf_np, best_ssim_iterations, file_name_ssim)
+        make_trio(file_name_psnr, orig_float, blurred_float, res_np_psnr, psf_ind, noise, best_psnr_iterations)
+        make_trio(file_name_ssim, orig_float, blurred_float, res_np_ssim, psf_ind, noise, best_ssim_iterations)
 
         
 
@@ -192,4 +193,4 @@ for filename in all_files:
         res_ssim_val = calc_ssim(orig_float, res_np)
         with open('results/rich_lucy_res_20.txt', 'a') as f:
             f.write(f"file {file_name}\ninitial psnr val {init_psnr_val}, psnr val after restoration {res_psnr_val}\ninitial ssim val {init_ssim_val}, ssim val after restoration {res_ssim_val}\n---------------\n")
-        make_trio(file_name, orig_float, blurred_float, res_np)
+        make_trio(file_name, orig_float, blurred_float, res_np, psf_ind, noise, 5)
