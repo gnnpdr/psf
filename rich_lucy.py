@@ -8,6 +8,7 @@ from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
 from scipy.ndimage import shift
+import torch
 
 def img2float(img):
     img_gray = img.convert('L')
@@ -49,16 +50,14 @@ def make_trio(file_name, orig_np, blurred_np, res_np, psf_ind, noise, it):
 #--------------------------------------------------------------------------------------------------
 
 def rich_lucy_save(img_float, psf_np, it, orig_name):
-    psf_centered = center_psf(psf_np)
-    res_np = richardson_lucy(img_float, psf_centered, it)
+    res_np = richardson_lucy(img_float, psf_np, it)
     result_img = (res_np * 255).clip(0, 255).astype(np.uint8)
     Image.fromarray(result_img).save(f'results/restored_rich_lusy/{orig_name}_it_{it}_restored.png')
     return res_np
 
 
 def rich_lucy(img_float, psf_np, it):
-    psf_centered = center_psf(psf_np)
-    res_np = richardson_lucy(img_float, psf_centered, it)
+    res_np = richardson_lucy(img_float, psf_np, it)
     return res_np
 
 #------------------------------------------------------------------------------------------------------
@@ -133,6 +132,7 @@ def center_psf(psf):
     
     return psf
 
+
 def calc_ssim(orig_float, res_np):
     ssim_val = ssim(orig_float, res_np, data_range=1.0)
     return ssim_val
@@ -142,6 +142,16 @@ def calc_ssim(orig_float, res_np):
 def calc_psnr(orig_float, res_np):
     metric_val = psnr(orig_float, res_np, data_range=1.0)
     return metric_val
+
+def psf_corner_to_center(psf_np):
+    psf_tensor = torch.from_numpy(psf_np).float()
+    
+    psf_centered_tensor = torch.fft.ifftshift(psf_tensor, dim=(-2, -1))
+    
+    psf_centered_np = psf_centered_tensor.cpu().numpy()
+    
+    return psf_centered_np
+
 
 #----------------------------------------------------------------------------------------------------------
 
@@ -167,30 +177,30 @@ for filename in all_files:
         blurred_float = img2float(blurred)
 
         psf_np = np.load(f'results/psf/{orig_name}_psf_{psf_ind}.npy')
-        if abs(psf_np.sum() - 1.0) > 1e-6:
-            psf_np = psf_np / psf_np.sum()
+        psf_centered = psf_corner_to_center(psf_np)
+        psf_final = center_psf(psf_centered)
 
-        init_psnr_val = calc_psnr(orig_float, blurred_float)
-        init_ssim_val = calc_ssim(orig_float, blurred_float)
+        #init_psnr_val = calc_psnr(orig_float, blurred_float)
+        #init_ssim_val = calc_ssim(orig_float, blurred_float)
 
-        best_psnr_iterations, psnr_val = check_iterations(calc_psnr, blurred_float, psf_np, orig_float)
-        best_ssim_iterations, ssim_val = check_iterations(calc_ssim, blurred_float, psf_np, orig_float)
-        file_name_psnr = f'{file_name}_best_psnr'
-        file_name_ssim = f'{file_name}_best_ssim'
+        #best_psnr_iterations, psnr_val = check_iterations(calc_psnr, blurred_float, psf_final, orig_float)
+        #best_ssim_iterations, ssim_val = check_iterations(calc_ssim, blurred_float, psf_final, orig_float)
+        #file_name_psnr = f'{file_name}_best_psnr'
+        #file_name_ssim = f'{file_name}_best_ssim'
 
-        with open('results/rich_lucy_res.txt', 'a') as f:
-            f.write(f"file {file_name_psnr}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, iterations {best_psnr_iterations}\nfile {file_name_ssim}\ninitial ssim val {init_ssim_val}, ssim val after restoration {ssim_val}, iterations {best_ssim_iterations}\n---------------\n")
+        #with open('results/rich_lucy_res.txt', 'a') as f:
+        #    f.write(f"file {file_name_psnr}\ninitial psnr val {init_psnr_val}, psnr val after restoration {psnr_val}, iterations {best_psnr_iterations}\nfile {file_name_ssim}\ninitial ssim val {init_ssim_val}, ssim val after restoration {ssim_val}, iterations {best_ssim_iterations}\n---------------\n")
         
-        res_np_psnr = rich_lucy_save(blurred_float, psf_np, best_psnr_iterations, file_name_psnr)
-        res_np_ssim = rich_lucy_save(blurred_float, psf_np, best_ssim_iterations, file_name_ssim)
-        make_trio(file_name_psnr, orig_float, blurred_float, res_np_psnr, psf_ind, noise, best_psnr_iterations)
-        make_trio(file_name_ssim, orig_float, blurred_float, res_np_ssim, psf_ind, noise, best_ssim_iterations)
+        #res_np_psnr = rich_lucy_save(blurred_float, psf_final, best_psnr_iterations, file_name_psnr)
+        #res_np_ssim = rich_lucy_save(blurred_float, psf_final, best_ssim_iterations, file_name_ssim)
+        #make_trio(file_name_psnr, orig_float, blurred_float, res_np_psnr, psf_ind, noise, best_psnr_iterations)
+        #make_trio(file_name_ssim, orig_float, blurred_float, res_np_ssim, psf_ind, noise, best_ssim_iterations)
 
         
 
-        res_np = rich_lucy_save(blurred_float, psf_np, 5, file_name)
-        res_psnr_val = calc_psnr(orig_float, res_np)
-        res_ssim_val = calc_ssim(orig_float, res_np)
-        with open('results/rich_lucy_res_20.txt', 'a') as f:
-            f.write(f"file {file_name}\ninitial psnr val {init_psnr_val}, psnr val after restoration {res_psnr_val}\ninitial ssim val {init_ssim_val}, ssim val after restoration {res_ssim_val}\n---------------\n")
-        make_trio(file_name, orig_float, blurred_float, res_np, psf_ind, noise, 5)
+        res_np = rich_lucy_save(blurred_float, psf_final, 1, file_name)
+        #res_psnr_val = calc_psnr(orig_float, res_np)
+        #res_ssim_val = calc_ssim(orig_float, res_np)
+        #with open('results/rich_lucy_res_20.txt', 'a') as f:
+        #    f.write(f"file {file_name}\ninitial psnr val {init_psnr_val}, psnr val after restoration {res_psnr_val}\ninitial ssim val {init_ssim_val}, ssim val after restoration {res_ssim_val}\n---------------\n")
+        make_trio(file_name, orig_float, blurred_float, res_np, psf_ind, noise, 1)

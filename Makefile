@@ -15,30 +15,30 @@ blur_noise:
 
 wiener_olimp:
 	python wiener_olimp.py
-	python w_stat.py
+	python stat/w_stat.py
 
 wiener_skimage:
 	python wiener_skimage.py
-	python w_stat.py
+	python stat/w_stat.py
 
 rich_lucy:
 	python rich_lucy.py
-	python rl_stat.py
+	python stat/rl_stat.py
 
 full_restorage:
 	python wiener_olimp.py
-	python w_stat.py
+	python stat/w_stat.py
 	python wiener_skimage.py
-	python ws_stat.py
+	python stat/ws_stat.py
 	python rich_lucy.py
-	python rl_stat.py
+	python stat/rl_stat.py
 
 
 full:
 	python blur_noise.py
 	python wiener_olimp.py
-	python w_stat.py
+	python stat/w_stat.py
 	python wiener_skimage.py
-	python ws_stat.py
+	python stat/ws_stat.py
 	python rich_lucy.py
-	python rl_stat.py
+	python stat/rl_stat.py

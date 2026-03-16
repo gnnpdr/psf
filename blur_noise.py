@@ -8,6 +8,7 @@ from olimp.processing import fft_conv, fftshift
 import matplotlib.pyplot as plt
 import os
 from skimage.util import random_noise
+from scipy.ndimage import shift
 
 def get_file_name(img_path):
     name = os.path.splitext(os.path.basename(img_path))[0]
@@ -29,22 +30,20 @@ def img2float(img):
     return img_float
 
 def pad_psf(psf, img):
-    psf_shifted = fftshift(psf)
-    
-    h_psf, w_psf = psf_shifted.shape
-    
+    h_psf, w_psf = psf.shape
     h_img, w_img = img.shape
+    
     pad_h = h_img - h_psf
     pad_w = w_img - w_psf
     
-    pad_top = pad_h // 2
-    pad_bottom = pad_h - pad_top
-    pad_left = pad_w // 2
-    pad_right = pad_w - pad_left
+    pad_top = 0
+    pad_bottom = pad_h
+    pad_left = 0
+    pad_right = pad_w
     
-    psf_padded = F.pad(psf_shifted, (pad_left, pad_right, pad_top, pad_bottom), 'constant', 0)
-    
+    psf_padded = F.pad(psf, (pad_left, pad_right, pad_top, pad_bottom), 'constant', 0)
     psf_padded = psf_padded / psf_padded.sum()
+    
     return psf_padded
 
 def analyze_psf(psf_np):
@@ -87,7 +86,6 @@ def blur(img, psf):
     
     blurred_tensor = fft_conv(img_tensor, psf_tensor)
 
-    blurred_tensor = torch.fft.ifftshift(blurred_tensor, dim = (-2, -1)) 
     return blurred_tensor
 
 def make_trio(img_name, img_np, noisy_np, psf_2d, psf_ind, noise_level):
@@ -117,6 +115,7 @@ def make_trio(img_name, img_np, noisy_np, psf_2d, psf_ind, noise_level):
     plt.savefig(f'results/init_trios/{img_name}_psf_{psf_ind}_noise_{noise_level}.png', dpi=150, bbox_inches='tight')
     plt.close()
 
+
 #---------------------------------------------------------------
 
 os.makedirs('results', exist_ok = True)
@@ -126,21 +125,21 @@ os.makedirs('results/psf', exist_ok = True)
 
 image_paths = [
 #    'image/1.png',
-    #'image/4.1.08.tiff', 
-    #'image/4.2.05.tiff',
-    #'image/7.1.01.tiff',
+    'image/4.1.08.tiff', 
+    'image/4.2.05.tiff',
+    'image/7.1.01.tiff',
     'image/7.1.04.tiff',
-    #'image/7.2.01.tiff'
+    'image/7.2.01.tiff'
 ]
 
 psf_dataset = PsfGaussDataset(
-    width=15,
-    height=15,
+    width=21,
+    height=21,
     center_x = ({'name': 'constant', 'value': 0}),
     center_y = ({'name': 'constant', 'value': 0}),
     theta = ({'name': 'uniform', 'a': 0, 'b': 180}),
-    sigma_x = ({'name': 'uniform', 'a': 1.0, 'b': 5.0}),
-    sigma_y = ({'name': 'uniform', 'a': 1.0, 'b': 5.0}),
+    sigma_x = ({'name': 'uniform', 'a': 5.0, 'b': 10.0}),
+    sigma_y = ({'name': 'uniform', 'a': 5.0, 'b': 10.0}),
     seed=42,
     size=5
 )
@@ -171,8 +170,6 @@ for img_path in image_paths:
 
     for psf_ind in range(5):
         psf = psf_dataset[psf_ind]
-        #with open('results/psf_data.txt', 'a') as f:
-        #    f.write(f"ind {psf_ind}\ntheta {psf_dataset._theta}, sigma_x {psf_dataset._sigma_x}, sigma_y {psf_dataset._sigma_y}\n---------------\n")
         
         psf_2d = psf.squeeze(0)
         psf2save = psf_2d.cpu().numpy()

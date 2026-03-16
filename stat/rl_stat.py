@@ -67,7 +67,7 @@ def parse_richardson_results(filepath):
 
 
 def plot_richardson_results(results_psnr, results_ssim):
-    fig, axes = plt.subplots(3, 2, figsize=(16, 14))
+    fig, axes = plt.subplots(2, 2, figsize=(16, 14))
     
     if results_psnr:
         ax = axes[0, 0]
@@ -188,107 +188,101 @@ def plot_richardson_results(results_psnr, results_ssim):
             ax.set_xticks(positions)
             ax.set_xticklabels([f'{n}' for n in unique_noises])
             ax.grid(True, alpha=0.3, axis='y')
-    
-    if results_psnr:
-        ax = axes[2, 0]
-        
-        psf_indices = [r['psf_idx'] for r in results_psnr if r['psf_idx'] is not None]
-        improvements = [r['psnr_improvement'] for r in results_psnr if r['psf_idx'] is not None]
-        
-        unique_psf = sorted(set(psf_indices))
-        
-        if unique_psf:
-            means = []
-            stds = []
-            for psf_idx in unique_psf:
-                impr = [r['psnr_improvement'] for r in results_psnr if r['psf_idx'] == psf_idx]
-                means.append(np.mean(impr))
-                stds.append(np.std(impr))
             
-            x_pos = np.arange(len(unique_psf))
-            ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.3)
-            ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
-            
-            for i, psf_idx in enumerate(unique_psf):
-                y_vals = [r['psnr_improvement'] for r in results_psnr if r['psf_idx'] == psf_idx]
-                x_vals = [i] * len(y_vals)
-                ax.scatter(x_vals, y_vals, alpha=0.5, color='blue', zorder=5)
-            
-            ax.set_xlabel('PSF index')
-            ax.set_ylabel('PSNR improvement (dB)')
-            ax.set_title('dependence of PSNR on the PSF')
-            ax.set_xticks(x_pos)
-            ax.set_xticklabels([f'PSF {i}' for i in unique_psf])
-            ax.grid(True, alpha=0.3, axis='y')
-    
-    if results_ssim:
-        ax = axes[2, 1]
-        
-        psf_indices = [r['psf_idx'] for r in results_ssim if r['psf_idx'] is not None]
-        improvements = [r['ssim_improvement'] for r in results_ssim if r['psf_idx'] is not None]
-        
-        unique_psf = sorted(set(psf_indices))
-        
-        if unique_psf:
-            means = []
-            stds = []
-            for psf_idx in unique_psf:
-                impr = [r['ssim_improvement'] for r in results_ssim if r['psf_idx'] == psf_idx]
-                means.append(np.mean(impr))
-                stds.append(np.std(impr))
-            
-            x_pos = np.arange(len(unique_psf))
-            ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.3, color='green')
-            ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
-            
-            for i, psf_idx in enumerate(unique_psf):
-                y_vals = [r['ssim_improvement'] for r in results_ssim if r['psf_idx'] == psf_idx]
-                x_vals = [i] * len(y_vals)
-                ax.scatter(x_vals, y_vals, alpha=0.5, color='green', zorder=5)
-            
-            ax.set_xlabel('PSF index')
-            ax.set_ylabel('SSIM improvement (dB)')
-            ax.set_title('dependence of SSIM on the PSF')
-            ax.set_xticks(x_pos)
-            ax.set_xticklabels([f'PSF {i}' for i in unique_psf])
-            ax.grid(True, alpha=0.3, axis='y')
-    
     plt.tight_layout()
     plt.savefig('results/richardson_lucy_analysis.png', dpi=150, bbox_inches='tight')
-    
-    if results_psnr:
-        unique_noises = sorted(set([r['true_noise'] for r in results_psnr if r['true_noise'] is not None]))
-        for noise in unique_noises:
-            group = [r for r in results_psnr if r['true_noise'] == noise]
-            impr = [r['psnr_improvement'] for r in group]
-            iters = [r['iterations'] for r in group]
-            print(f"noise {noise}: improvement = {np.mean(impr):.2f}±{np.std(impr):.2f} dB, "
-                  f"iterations = {np.mean(iters):.1f}±{np.std(iters):.1f}")
-    
-    if results_ssim:
-        unique_noises = sorted(set([r['true_noise'] for r in results_ssim if r['true_noise'] is not None]))
-        for noise in unique_noises:
-            group = [r for r in results_ssim if r['true_noise'] == noise]
-            impr = [r['ssim_improvement'] for r in group]
-            iters = [r['iterations'] for r in group]
-            print(f"noise {noise}: улучшение = {np.mean(impr):.4f}±{np.std(impr):.4f}, "
-                  f"iterations = {np.mean(iters):.1f}±{np.std(iters):.1f}")
-    
-    if results_psnr:
-        unique_psf = sorted(set([r['psf_idx'] for r in results_psnr if r['psf_idx'] is not None]))
-        for psf_idx in unique_psf:
-            group = [r for r in results_psnr if r['psf_idx'] == psf_idx]
-            impr = [r['psnr_improvement'] for r in group]
-            print(f"PSF {psf_idx}: improvement = {np.mean(impr):.2f}±{np.std(impr):.2f} dB, n={len(group)}")
-    
-    if results_ssim:
-        unique_psf = sorted(set([r['psf_idx'] for r in results_ssim if r['psf_idx'] is not None]))
-        for psf_idx in unique_psf:
-            group = [r for r in results_ssim if r['psf_idx'] == psf_idx]
-            impr = [r['ssim_improvement'] for r in group]
-            print(f"PSF {psf_idx}: improvement = {np.mean(impr):.4f}±{np.std(impr):.4f}, n={len(group)}")
 
+def plot_richardson_results_by_noise_psf(results_psnr, results_ssim):
+    
+    noise_levels = sorted(set([r['true_noise'] for r in results_psnr if r['true_noise'] is not None]))
+    
+    fig, axes = plt.subplots(len(noise_levels), 2, figsize=(14, 5*len(noise_levels)))
+    fig.suptitle('dependence of metrics on the PSF', fontsize=16)
+    
+    if len(noise_levels) == 1:
+        axes = axes.reshape(1, -1)
+    
+    for row, noise in enumerate(noise_levels):
+        psnr_noise = [r for r in results_psnr if r.get('true_noise') == noise]
+        ssim_noise = [r for r in results_ssim if r.get('true_noise') == noise]
+        
+        ax = axes[row, 0]
+        if psnr_noise:
+            psf_indices = [r['psf_idx'] for r in psnr_noise if r['psf_idx'] is not None]
+            improvements = [r['psnr_improvement'] for r in psnr_noise if r['psf_idx'] is not None]
+            
+            if psf_indices:
+                unique_psf = sorted(set(psf_indices))
+                means = []
+                stds = []
+                counts = []
+                
+                for psf_idx in unique_psf:
+                    impr = [r['psnr_improvement'] for r in psnr_noise if r['psf_idx'] == psf_idx]
+                    means.append(np.mean(impr))
+                    stds.append(np.std(impr))
+                    counts.append(len(impr))
+                
+                x_pos = np.arange(len(unique_psf))
+                bars = ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.3, color='blue', edgecolor='black')
+                ax.axhline(y=0, color='r', linestyle='--', alpha=0.35)
+                
+                for i, psf_idx in enumerate(unique_psf):
+                    y_vals = [r['psnr_improvement'] for r in psnr_noise if r['psf_idx'] == psf_idx]
+                    x_vals = [i] * len(y_vals)
+                    ax.scatter(x_vals, y_vals, alpha=0.5, color='darkblue', s=30, zorder=10)
+                
+                ax.set_title(f'PSNR, noise {noise}')
+                ax.set_xlabel('PSF index')
+                ax.set_ylabel('PSNR improvement (dB)')
+                ax.set_xticks(x_pos)
+                ax.set_xticklabels([f'PSF {i}' for i in unique_psf])
+                ax.grid(True, alpha=0.3, axis='y')
+                
+                for i, (bar, count) in enumerate(zip(bars, counts)):
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width()/2., 
+                            height + (0.1 if height >= 0 else -0.3),
+                            f'n={count}', ha='center', va='bottom' if height >= 0 else 'top', fontsize=8)
+        
+        ax = axes[row, 1]
+        if ssim_noise:
+            psf_indices = [r['psf_idx'] for r in ssim_noise if r['psf_idx'] is not None]
+            improvements = [r['ssim_improvement'] for r in ssim_noise if r['psf_idx'] is not None]
+            
+            if psf_indices:
+                unique_psf = sorted(set(psf_indices))
+                means = []
+                stds = []
+                counts = []
+                
+                for psf_idx in unique_psf:
+                    impr = [r['ssim_improvement'] for r in ssim_noise if r['psf_idx'] == psf_idx]
+                    means.append(np.mean(impr))
+                    stds.append(np.std(impr))
+                    counts.append(len(impr))
+                
+                x_pos = np.arange(len(unique_psf))
+                bars = ax.bar(x_pos, means, yerr=stds, capsize=5, alpha=0.3, color='green', edgecolor='black')
+                ax.axhline(y=0, color='r', linestyle='--', alpha=0.5)
+                
+                for i, psf_idx in enumerate(unique_psf):
+                    y_vals = [r['ssim_improvement'] for r in ssim_noise if r['psf_idx'] == psf_idx]
+                    x_vals = [i] * len(y_vals)
+                    ax.scatter(x_vals, y_vals, alpha=0.5, color='darkgreen', s=30, zorder=10)
+                
+                ax.set_title(f'SSIM, noise {noise}')
+                ax.set_xlabel('PSF index')
+                ax.set_ylabel('SSIM improvement (dB)')
+                ax.set_xticks(x_pos)
+                ax.set_xticklabels([f'PSF {i}' for i in unique_psf])
+                ax.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    plt.savefig('results/richardson_lucy_analysis_by_noise.png', dpi=150, bbox_inches='tight')
+    plt.show()
 
 results_file = 'results/rich_lucy_res.txt'
 results_psnr, results_ssim = parse_richardson_results(results_file)
 plot_richardson_results(results_psnr, results_ssim)
+plot_richardson_results_by_noise_psf(results_psnr, results_ssim)
